@@ -16,19 +16,23 @@ public class GoldbergPolyhedron : MonoBehaviour
 
     private List<Vector3> primalVertices;
     private List<int> primalTriangles;
-    
+
     public List<GameObject> tiles;
+
+    public float faceScale = 0.25f;
 
     public void Generate(Transform transform)
     {
         tiles = new();
+
+        faceScale = 0.5f * Mathf.Pow(1 / 2f, frequency);
 
         // correct gaps in tiles.
         // gaps still show in low frequency
         // TODO: fix ??
         if (frequency == 1f)
         {
-            cellScale = 1.145f;
+            cellScale = 1.14f;
         }
         else if (frequency == 2f)
         {

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.TextCore;
@@ -20,7 +21,7 @@ public class SelectableGrid : MonoBehaviour
     public Vector3 offset;
     List<Vector3> slots;
     List<GameObject> faces;
-    Dictionary<GameObject, Tile> tiles;
+    Dictionary<GameObject, GameObject> tiles;
     GoldbergPolyhedron polyhedron;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -81,11 +82,16 @@ public class SelectableGrid : MonoBehaviour
     {
         foreach (GameObject g in faces)
         {
-            Tile tile = new();
+            // Tile tile = new();
+            GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            tile.transform.position = Vector3.zero;
+            tile.transform.SetParent(g.transform, false);
+            tile.transform.localScale = Vector3.one * polyhedron.faceScale;
             tiles.Add(g, tile);
             if (Random.value < chance)
             {
-                tile.Color(Random.ColorHSV(0, 1, 0.3f, 0.7f, 0.4f, 0.7f));
+                Renderer r = tile.GetComponent<Renderer>();
+                r.material.color = Random.ColorHSV(0, 1, 0.3f, 0.7f, 0.4f, 0.7f);
             }
         }
     }
@@ -229,18 +235,21 @@ public class SelectableGrid : MonoBehaviour
                 Vector3 v = dragged.transform.position;
                 GameObject b = GetClosestFace(v);
 
-                if (tiles.ContainsKey(a))
-                {
-                    Tile s = tiles[a];
-                    tiles.Remove(a);
-                    if (tiles.ContainsKey(b))
-                    {
-                        Tile t = tiles[b];
-                        tiles.Remove(b);
-                        tiles.Add(a, t);
-                    }
-                    tiles.Add(b, s);
-                }
+                GameObject s = tiles[a];
+                GameObject t = tiles[b];
+
+                Vector3 p = s.transform.position;
+                tiles.Remove(a);
+                tiles.Remove(b);
+                tiles.Add(a, t);
+                s.transform.position = t.transform.position;
+                s.transform.SetParent(b.transform);
+                s.transform.localEulerAngles = Vector3.zero;
+                tiles.Add(b, s);
+                t.transform.position = p;
+                t.transform.SetParent(a.transform);
+                t.transform.localEulerAngles = Vector3.zero;
+
             }
             dragging = false;
             selecting = false;
@@ -254,8 +263,7 @@ public class SelectableGrid : MonoBehaviour
             InitTiles();
         }
 
-        float scale = 0.5f * Mathf.Pow(1/2f, polyhedron.frequency);
-        Vector3 faceScale = Vector3.one * scale;
+        Vector3 faceScale = Vector3.one * polyhedron.faceScale;
         foreach (GameObject g in faces)
         {
             Matrix4x4 orig = Gizmos.matrix;
@@ -267,7 +275,7 @@ public class SelectableGrid : MonoBehaviour
             Gizmos.color = Color.white;
             if (tiles.ContainsKey(g))
             {
-                Gizmos.color = tiles[g].color;
+                Gizmos.color = tiles[g].GetComponent<Renderer>().material.color;
                 Gizmos.DrawSphere(Vector3.zero, 1f);
             }
 
