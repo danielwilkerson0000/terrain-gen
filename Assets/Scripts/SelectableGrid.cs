@@ -27,8 +27,9 @@ public class SelectableGrid : MonoBehaviour
         origin = 0.5f * new Vector3(height - 1, 0, width - 1);
         if (tiles is null)
         {
-            InitSlots();
-        };
+            InitTiles();
+        }
+        ;
         selected = GameObject.CreatePrimitive(PrimitiveType.Cube);
         selected.SetActive(false);
 
@@ -38,17 +39,6 @@ public class SelectableGrid : MonoBehaviour
 
     public Vector3 GetClosestSlot(Vector3 position)
     {
-        
-        /*
-
-        getClosestSlot(V3 pos) {
-        for (slot t in slots) {
-        if slot.id(pos) = grid.id(pos)
-        }
-        }
-
-        */
-
         float dist = float.MaxValue;
         Vector3 closest = Vector3.zero;
         foreach (Vector3 slot in slots)
@@ -64,16 +54,39 @@ public class SelectableGrid : MonoBehaviour
         return closest;
     }
 
-    void InitSlots()
+    void InitTiles()
     {
         slots = new();
         tiles = new();
         spots = new();
 
+
+        /**
+            THESE INIT TILE LOCATIONS AND GAMEOBJECTS
+        **/
         // MakeRandomSphericalTiles();        
-        MakeGoldbergTiles();
+        InitGoldbergTiles();
+
+
+        // THESE PLACE RANDOM TILES IN THE WORLD
+        FillSpotsWithTiles(0.2f);
+
     }
-    
+
+
+    void FillSpotsWithTiles(float chance)
+    {
+        foreach (GameObject g in spots)
+        {
+            Tile tile = new();
+            tiles.Add(g.transform.position, tile);
+            if (Random.value < chance)
+            {
+                tile.Color(Random.ColorHSV(0, 1, 0.3f, 0.7f, 0.4f, 0.7f));
+            }
+        }
+    }
+
     void MakeRandomSphericalTiles()
     {
         for (int i = 0; i < width; i++)
@@ -130,38 +143,30 @@ public class SelectableGrid : MonoBehaviour
         }
     }
 
-    void MakeGoldbergTiles()
+    void InitGoldbergTiles()
     {
         GoldbergPolyhedron p = transform.GetComponent<GoldbergPolyhedron>();
         p.Generate(transform);
-        slots = p.tiles.Select(t => t.transform.position).ToList();
         spots = p.tiles;
+        slots = spots.Select(t => t.transform.position).ToList();
         // Debug.Log(slots);
 
         foreach (GameObject tile in p.tiles)
         {
             tile.transform.SetParent(transform);
         }
-        foreach (GameObject g in spots)
-        {
-            if (Random.value < 0.2f)
-            {
-                tiles.Add(g.transform.position, new Tile());
-            }
-        }
-        // foreach (Vector3 slot in slots)
-        // {
-        //     if (Random.value < 0.2f)
-        //     {
-        //         tiles.Add(slot, new Tile());
-        //     }
-        // }
     }
 
     // Update is called once per frame
     void Update()
     {
+        ManageMouseControls();
+        FinalizeMouseControls();
+    }
 
+    void ManageMouseControls()
+    {
+        // Try to drag the closest face to hit.
         if (Mouse.current.leftButton.isPressed)
         {
             Vector2 mousePosition = Mouse.current.position.ReadValue();
@@ -174,7 +179,8 @@ public class SelectableGrid : MonoBehaviour
                 dragged.transform.position = GetClosestSlot(hit.point);
             }
         }
-        // Check if the left mouse button is clicked
+
+        // Try to select the closest face to hit
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
             Vector2 mousePosition = Mouse.current.position.ReadValue();
@@ -194,16 +200,20 @@ public class SelectableGrid : MonoBehaviour
                 selecting = false;
             }
         }
-       
 
+        // If we are dragging and selecting the same face, assume we are actually NOT dragging.
+        // For safety <3
         if ((selected.transform.position - dragged.transform.position).sqrMagnitude < 0.01f)
         {
             dragging = false;
         }
+    }
 
+    // Finailize dragging and switching Tiles
+    void FinalizeMouseControls()
+    {
         if (Mouse.current.leftButton.wasReleasedThisFrame)
         {
-
             // moves tile S from A to B
             // or switches tile S at A with T at B
             if (dragging && selecting)
@@ -232,7 +242,7 @@ public class SelectableGrid : MonoBehaviour
     {
         if (Application.isPlaying && !spots.Any())
         {
-            InitSlots();
+            InitTiles();
         }
 
         // foreach (Vector3 slot in slots)
@@ -248,18 +258,18 @@ public class SelectableGrid : MonoBehaviour
             Gizmos.matrix = goal;
 
             Gizmos.color = Color.white;
-            Gizmos.DrawCube(Vector3.zero, 0.25f * Vector3.one);
+            Gizmos.DrawSphere(Vector3.zero, 0.15f);
 
             if (tiles.ContainsKey(pos))
             {
                 Gizmos.color = tiles[pos].color;
-                Gizmos.DrawCube(Vector3.zero, 0.3f * Vector3.one);
+                Gizmos.DrawSphere(Vector3.zero, 0.2f);
             }
 
             Gizmos.matrix = orig;
 
-            Gizmos.DrawRay(pos, rot * Vector3.forward * 0.4f);
-            Gizmos.DrawRay(pos, rot * Vector3.up * 0.4f);
+            // Gizmos.DrawRay(pos, rot * Vector3.forward * 0.4f);
+            // Gizmos.DrawRay(pos, rot * Vector3.up * 0.4f);
         }
 
         if (selecting)
