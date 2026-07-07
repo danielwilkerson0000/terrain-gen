@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.TextCore;
 
 public class SelectableGrid : MonoBehaviour
 {
@@ -18,8 +19,9 @@ public class SelectableGrid : MonoBehaviour
     public Vector3 origin;
     public Vector3 offset;
     List<Vector3> slots;
-    List<GameObject> spots;
-    Dictionary<Vector3, Tile> tiles;
+    List<GameObject> faces;
+    Dictionary<GameObject, Tile> tiles;
+    GoldbergPolyhedron polyhedron;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -37,11 +39,11 @@ public class SelectableGrid : MonoBehaviour
         dragged.SetActive(false);
     }
 
-    public GameObject GetClosestSpot(Vector3 hitPosition)
+    public GameObject GetClosestFace(Vector3 hitPosition)
     {
         float dist = float.MaxValue;
-        GameObject closest = spots.Any() ? spots[0] : null;
-        foreach (GameObject t in spots)
+        GameObject closest = faces.Any() ? faces[0] : null;
+        foreach (GameObject t in faces)
         {
             Vector3 p = t.transform.position;
             float m = (p - hitPosition).sqrMagnitude;
@@ -57,9 +59,9 @@ public class SelectableGrid : MonoBehaviour
 
     void InitTiles()
     {
-        slots = new();
+        // slots = new();
         tiles = new();
-        spots = new();
+        faces = new();
 
 
         /**
@@ -77,10 +79,10 @@ public class SelectableGrid : MonoBehaviour
 
     void FillSpotsWithTiles(float chance)
     {
-        foreach (GameObject g in spots)
+        foreach (GameObject g in faces)
         {
             Tile tile = new();
-            tiles.Add(g.transform.position, tile);
+            tiles.Add(g, tile);
             if (Random.value < chance)
             {
                 tile.Color(Random.ColorHSV(0, 1, 0.3f, 0.7f, 0.4f, 0.7f));
@@ -88,7 +90,9 @@ public class SelectableGrid : MonoBehaviour
         }
     }
 
+    // IGNORE THIS
     void MakeRandomSphericalTiles()
+
     {
         for (int i = 0; i < width; i++)
         {
@@ -106,7 +110,7 @@ public class SelectableGrid : MonoBehaviour
 
                 if (UnityEngine.Random.value < 0.2)
                 {
-                    tiles.Add(p, new Tile());
+                    // tiles.Add(p, new Tile());
                 }
 
 
@@ -114,6 +118,7 @@ public class SelectableGrid : MonoBehaviour
         }
     }
 
+    // IGNORE THIS
     void MakeSphericalTiles()
     {
         for (int i = 0; i < width; i++)
@@ -136,7 +141,7 @@ public class SelectableGrid : MonoBehaviour
 
                 if (UnityEngine.Random.value < 0.2)
                 {
-                    tiles.Add(slot, new Tile());
+                    // tiles.Add(slot, new Tile());
                 }
 
 
@@ -146,15 +151,15 @@ public class SelectableGrid : MonoBehaviour
 
     void InitGoldbergTiles()
     {
-        GoldbergPolyhedron p = transform.GetComponent<GoldbergPolyhedron>();
-        p.Generate(transform);
-        spots = p.tiles;
-        slots = spots.Select(t => t.transform.position).ToList();
+        polyhedron = transform.GetComponent<GoldbergPolyhedron>();
+        polyhedron.Generate(transform);
+        faces = polyhedron.tiles;
+        // slots = faces.Select(t => t.transform.position).ToList();
         // Debug.Log(slots);
 
-        foreach (GameObject tile in p.tiles)
+        foreach (GameObject face in faces)
         {
-            tile.transform.SetParent(transform);
+            face.transform.SetParent(transform);
         }
     }
 
@@ -177,7 +182,7 @@ public class SelectableGrid : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, selectables))
             {
                 dragging = true;
-                dragged.transform.position = GetClosestSpot(hit.point).transform.position;
+                dragged.transform.position = GetClosestFace(hit.point).transform.position;
             }
         }
 
@@ -194,7 +199,7 @@ public class SelectableGrid : MonoBehaviour
                 // Access data about the object that was struck
                 Debug.Log("Selected " + hit.transform.name + " " + hit.transform.position + " at point " + hit.point);
 
-                selected.transform.position = GetClosestSpot(hit.point).transform.position;
+                selected.transform.position = GetClosestFace(hit.point).transform.position;
             }
             else
             {
@@ -219,8 +224,11 @@ public class SelectableGrid : MonoBehaviour
             // or switches tile S at A with T at B
             if (dragging && selecting)
             {
-                Vector3 a = selected.transform.position;
-                Vector3 b = dragged.transform.position;
+                Vector3 u = selected.transform.position;
+                GameObject a = GetClosestFace(u);
+                Vector3 v = dragged.transform.position;
+                GameObject b = GetClosestFace(v);
+
                 if (tiles.ContainsKey(a))
                 {
                     Tile s = tiles[a];
@@ -241,34 +249,29 @@ public class SelectableGrid : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        if (Application.isPlaying && !spots.Any())
+        if (Application.isPlaying && !faces.Any())
         {
             InitTiles();
         }
 
-        // foreach (Vector3 slot in slots)
-        
-        foreach (GameObject g in spots)
+        float scale = 0.5f * Mathf.Pow(1/2f, polyhedron.frequency);
+        Vector3 faceScale = Vector3.one * scale;
+        foreach (GameObject g in faces)
         {
-            Vector3 pos = g.transform.position;
-            Matrix4x4 m = transform.localToWorldMatrix;
-
             Matrix4x4 orig = Gizmos.matrix;
+            Vector3 pos = g.transform.position;
             Quaternion rot = Quaternion.FromToRotation(Vector3.forward, pos - transform.position);
-            Matrix4x4 goal = Matrix4x4.TRS(pos - transform.position, rot, Vector3.one);
+            Matrix4x4 goal = Matrix4x4.TRS(pos - transform.position, rot, faceScale);
             Gizmos.matrix = goal;
 
             Gizmos.color = Color.white;
-            Gizmos.DrawSphere(Vector3.zero, 0.15f);
-
-            if (tiles.ContainsKey(pos))
+            if (tiles.ContainsKey(g))
             {
-                Gizmos.color = tiles[pos].color;
-                Gizmos.DrawSphere(Vector3.zero, 0.2f);
+                Gizmos.color = tiles[g].color;
+                Gizmos.DrawSphere(Vector3.zero, 1f);
             }
 
             Gizmos.matrix = orig;
-
             // Gizmos.DrawRay(pos, rot * Vector3.forward * 0.4f);
             // Gizmos.DrawRay(pos, rot * Vector3.up * 0.4f);
         }
@@ -276,13 +279,13 @@ public class SelectableGrid : MonoBehaviour
         if (selecting)
         {
             Gizmos.color = Color.darkBlue;
-            Gizmos.DrawWireCube(selected.transform.position, 0.4f * Vector3.one);
+            Gizmos.DrawWireCube(selected.transform.position, faceScale);
         }
 
         if (dragging)
         {
             Gizmos.color = Color.red;
-            Gizmos.DrawWireCube(dragged.transform.position, 0.4f * Vector3.one);
+            Gizmos.DrawWireCube(dragged.transform.position, faceScale);
         }
     }
 }
