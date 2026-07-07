@@ -37,17 +37,18 @@ public class SelectableGrid : MonoBehaviour
         dragged.SetActive(false);
     }
 
-    public Vector3 GetClosestSlot(Vector3 position)
+    public GameObject GetClosestSpot(Vector3 hitPosition)
     {
         float dist = float.MaxValue;
-        Vector3 closest = Vector3.zero;
-        foreach (Vector3 slot in slots)
+        GameObject closest = spots.Any() ? spots[0] : null;
+        foreach (GameObject t in spots)
         {
-            float m = (slot - position).sqrMagnitude;
+            Vector3 p = t.transform.position;
+            float m = (p - hitPosition).sqrMagnitude;
             if (m < dist)
             {
                 dist = m;
-                closest = slot;
+                closest = t;
             }
         }
 
@@ -176,7 +177,7 @@ public class SelectableGrid : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, selectables))
             {
                 dragging = true;
-                dragged.transform.position = GetClosestSlot(hit.point);
+                dragged.transform.position = GetClosestSpot(hit.point).transform.position;
             }
         }
 
@@ -193,7 +194,7 @@ public class SelectableGrid : MonoBehaviour
                 // Access data about the object that was struck
                 Debug.Log("Selected " + hit.transform.name + " " + hit.transform.position + " at point " + hit.point);
 
-                selected.transform.position = GetClosestSlot(hit.point);
+                selected.transform.position = GetClosestSpot(hit.point).transform.position;
             }
             else
             {
