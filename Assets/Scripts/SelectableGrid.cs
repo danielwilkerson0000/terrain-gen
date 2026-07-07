@@ -38,9 +38,9 @@ public class SelectableGrid : MonoBehaviour
         dragged.SetActive(false);
     }
 
-    /***
-    Simple search for the closest face to target point
-    ***/
+    /// <summary>
+    /// Naive search for the closest face to target point.
+    /// </summary>
     public GameObject GetClosestFace(Vector3 target)
     {
         float dist = float.MaxValue;
