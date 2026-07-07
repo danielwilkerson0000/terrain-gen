@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+/// <summary>
+/// THIS WAS LARGELY GENERATED WITH THE HELP OF GOOGLE GEMINI - MANY THANKS.
+/// </summary>
 public class GoldbergPolyhedron : MonoBehaviour
 {
     [Header("Polyhedron Settings")]
@@ -46,7 +49,7 @@ public class GoldbergPolyhedron : MonoBehaviour
         {
             cellScale = 1f;
         }
-        
+
 
         GenerateSubdividedIcosahedron();
         BuildIndividualTiles(transform);
@@ -182,14 +185,14 @@ public class GoldbergPolyhedron : MonoBehaviour
 
             // Create individual tile mesh
             bool isPentagon = (corners.Count == 5);
-            
+
             // Transform positions, normals, corners to match the given Transform
             Matrix4x4 transformation = transform.localToWorldMatrix;
             cellCenterPos = transformation.MultiplyPoint3x4(cellCenterPos);
             cellCenterPos = transformation.MultiplyPoint3x4(cellNormal);
             corners = corners.Select(c => transformation.MultiplyPoint3x4(c)).ToList();
-            
-            
+
+
             GameObject tile = CreateTileGameObject(cellCenterPos, cellNormal, corners, isPentagon);
             tiles.Add(tile);
         }
@@ -199,7 +202,7 @@ public class GoldbergPolyhedron : MonoBehaviour
     {
         GameObject tile = new GameObject(isPentagon ? "PentagonTile" : "HexagonTile");
         // tile.transform.SetParent(parent);
-        
+
         // Position the tile center in the world
         tile.transform.position = center;
         tile.transform.rotation = Quaternion.LookRotation(normal);
@@ -216,13 +219,13 @@ public class GoldbergPolyhedron : MonoBehaviour
         {
             // Convert global corner positions to local tile coordinates
             Vector3 localCorner = tile.transform.InverseTransformPoint(globalCorners[i]);
-            
+
             // Force flatness by flattening the local Z axis relative to its facing direction
-            localCorner.z = 0f; 
+            localCorner.z = 0f;
 
             // Apply tile scale down transformation for distinct spacing gaps
             localCorner *= cellScale;
-            
+
             localVertices.Add(localCorner);
         }
 
@@ -242,7 +245,7 @@ public class GoldbergPolyhedron : MonoBehaviour
         };
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
-        
+
         // Add a MeshCollider to make the individual flat tiles raycastable/clickable
         tile.AddComponent<MeshCollider>().sharedMesh = mesh;
         mf.mesh = mesh;

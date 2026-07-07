@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.TextCore;
 
 public class SelectableGrid : MonoBehaviour
 {
@@ -27,12 +25,12 @@ public class SelectableGrid : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        origin = 0.5f * new Vector3(height - 1, 0, width - 1);
         if (tiles is null)
         {
             InitTiles();
         }
-        ;
+        
+        // FOR GIZMOS   
         selected = GameObject.CreatePrimitive(PrimitiveType.Cube);
         selected.SetActive(false);
 
@@ -40,14 +38,17 @@ public class SelectableGrid : MonoBehaviour
         dragged.SetActive(false);
     }
 
-    public GameObject GetClosestFace(Vector3 hitPosition)
+    /***
+    Simple search for the closest face to target point
+    ***/
+    public GameObject GetClosestFace(Vector3 target)
     {
         float dist = float.MaxValue;
-        GameObject closest = faces.Any() ? faces[0] : null;
+        GameObject closest = null;
         foreach (GameObject t in faces)
         {
             Vector3 p = t.transform.position;
-            float m = (p - hitPosition).sqrMagnitude;
+            float m = (p - target).sqrMagnitude;
             if (m < dist)
             {
                 dist = m;
@@ -60,34 +61,31 @@ public class SelectableGrid : MonoBehaviour
 
     void InitTiles()
     {
-        // slots = new();
-        tiles = new();
         faces = new();
+        tiles = new();
 
-
-        /**
-            THESE INIT TILE LOCATIONS AND GAMEOBJECTS
-        **/
-        // MakeRandomSphericalTiles();        
+        // creates + places faces in the word
         InitGoldbergTiles();
 
 
-        // THESE PLACE RANDOM TILES IN THE WORLD
-        FillSpotsWithTiles(0.2f);
-
+        // creates + places tiles on all faces
+        PlaceTiles(0.2f);
     }
 
 
-    void FillSpotsWithTiles(float chance)
+    void PlaceTiles(float chance)
     {
         foreach (GameObject g in faces)
         {
-            // Tile tile = new();
+            // Create a new tile and align it to its parent face 
             GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
             tile.transform.position = Vector3.zero;
             tile.transform.SetParent(g.transform, false);
             tile.transform.localScale = Vector3.one * polyhedron.faceScale;
             tiles.Add(g, tile);
+
+
+            // give a few some color!
             if (Random.value < chance)
             {
                 Renderer r = tile.GetComponent<Renderer>();
@@ -97,7 +95,7 @@ public class SelectableGrid : MonoBehaviour
     }
 
     // IGNORE THIS
-    void MakeRandomSphericalTiles()
+    void InitRandomSphericalTiles()
 
     {
         for (int i = 0; i < width; i++)
@@ -125,7 +123,7 @@ public class SelectableGrid : MonoBehaviour
     }
 
     // IGNORE THIS
-    void MakeSphericalTiles()
+    void InitSphericalTiles()
     {
         for (int i = 0; i < width; i++)
         {
@@ -160,8 +158,6 @@ public class SelectableGrid : MonoBehaviour
         polyhedron = transform.GetComponent<GoldbergPolyhedron>();
         polyhedron.Generate(transform);
         faces = polyhedron.tiles;
-        // slots = faces.Select(t => t.transform.position).ToList();
-        // Debug.Log(slots);
 
         foreach (GameObject face in faces)
         {
@@ -226,25 +222,32 @@ public class SelectableGrid : MonoBehaviour
     {
         if (Mouse.current.leftButton.wasReleasedThisFrame)
         {
-            // moves tile S from A to B
-            // or switches tile S at A with T at B
+            // switches selected tile and ending tile
             if (dragging && selecting)
             {
+                // Find tile S on face A close to position U
                 Vector3 u = selected.transform.position;
                 GameObject a = GetClosestFace(u);
+                GameObject s = tiles[a];
+
+                // Find tile T on face B close to position V
                 Vector3 v = dragged.transform.position;
                 GameObject b = GetClosestFace(v);
-
-                GameObject s = tiles[a];
                 GameObject t = tiles[b];
 
+                // Take tiles off
                 Vector3 p = s.transform.position;
+                Vector3 q = t.transform.position;
                 tiles.Remove(a);
                 tiles.Remove(b);
+
+                // put tile S onto B at position Q
                 tiles.Add(a, t);
-                s.transform.position = t.transform.position;
+                s.transform.position = q;
                 s.transform.SetParent(b.transform);
                 s.transform.localEulerAngles = Vector3.zero;
+
+                // put tile T onto A at postiion P
                 tiles.Add(b, s);
                 t.transform.position = p;
                 t.transform.SetParent(a.transform);
