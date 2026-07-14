@@ -3,9 +3,9 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class SelectableGrid : MonoBehaviour
+public class Globe : MonoBehaviour
 {
-    public LayerMask selectables;
+    public LayerMask targetables;
 
     GameObject selected;
     GameObject dragged;
@@ -20,7 +20,7 @@ public class SelectableGrid : MonoBehaviour
     List<Vector3> slots;
     List<GameObject> faces;
     Dictionary<GameObject, GameObject> tiles;
-    GoldbergPolyhedron polyhedron;
+    Globehedron polyhedron;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -155,7 +155,7 @@ public class SelectableGrid : MonoBehaviour
 
     void InitGoldbergTiles()
     {
-        polyhedron = transform.GetComponent<GoldbergPolyhedron>();
+        polyhedron = transform.GetComponent<Globehedron>();
         polyhedron.Generate(transform);
         faces = polyhedron.tiles;
 
@@ -181,7 +181,7 @@ public class SelectableGrid : MonoBehaviour
             Ray ray = Camera.main.ScreenPointToRay(mousePosition);
 
             // Perform the physics raycast
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, selectables))
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, targetables))
             {
                 dragging = true;
                 dragged.transform.position = GetClosestFace(hit.point).transform.position;
@@ -195,7 +195,8 @@ public class SelectableGrid : MonoBehaviour
             Ray ray = Camera.main.ScreenPointToRay(mousePosition);
 
             // Perform the physics raycast
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, selectables))
+            // DANGER: make sure to call this with 4 args (or read)!
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, targetables))
             {
                 selecting = true;
                 // Access data about the object that was struck

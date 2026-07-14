@@ -4,8 +4,11 @@ using UnityEngine;
 
 /// <summary>
 /// THIS WAS LARGELY GENERATED WITH THE HELP OF GOOGLE GEMINI - MANY THANKS.
+/// 
+/// This creates a Goldberg Polyhedron 
+/// 
 /// </summary>
-public class GoldbergPolyhedron : MonoBehaviour
+public class Globehedron : MonoBehaviour
 {
     [Header("Polyhedron Settings")]
     [Range(1, 5)] public int frequency = 1;
@@ -17,6 +20,11 @@ public class GoldbergPolyhedron : MonoBehaviour
     public Material hexagonMaterial;
     public Material pentagonMaterial;
 
+    /// <summary>
+    /// not THIS things parent,
+    /// but it takes care of its kids.
+    /// </summary>
+    public GameObject babysitter;
     private List<Vector3> primalVertices;
     private List<int> primalTriangles;
 
@@ -24,9 +32,19 @@ public class GoldbergPolyhedron : MonoBehaviour
 
     public float faceScale = 0.25f;
 
+    public void ClearExisting()
+    {
+        foreach (GameObject g in tiles)
+        {
+            DestroyImmediate(g);
+        }
+        tiles = new();
+    }
+
     public void Generate(Transform transform)
     {
-        tiles = new();
+
+        ClearExisting();
 
         faceScale = 0.5f * Mathf.Pow(1 / 2f, frequency);
 
@@ -186,14 +204,16 @@ public class GoldbergPolyhedron : MonoBehaviour
             // Create individual tile mesh
             bool isPentagon = (corners.Count == 5);
 
-            // Transform positions, normals, corners to match the given Transform
-            Matrix4x4 transformation = transform.localToWorldMatrix;
+            // Transform positions, normals, corners to match the given Transform,
+            // or the default
+            transform ??= babysitter.transform;
+            Matrix4x4 transformation = transform.transform.localToWorldMatrix;
             cellCenterPos = transformation.MultiplyPoint3x4(cellCenterPos);
-            cellCenterPos = transformation.MultiplyPoint3x4(cellNormal);
+            cellNormal = transformation.MultiplyPoint3x4(cellNormal);
             corners = corners.Select(c => transformation.MultiplyPoint3x4(c)).ToList();
-
-
+            
             GameObject tile = CreateTileGameObject(cellCenterPos, cellNormal, corners, isPentagon);
+            tile.transform.parent = transform;
             tiles.Add(tile);
         }
     }
