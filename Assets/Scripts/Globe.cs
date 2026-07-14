@@ -18,8 +18,8 @@ public class Globe : MonoBehaviour
     public Vector3 origin;
     public Vector3 offset;
     List<Vector3> slots;
-    List<GameObject> faces;
-    Dictionary<GameObject, GameObject> tiles;
+    List<Face> faces;
+    Dictionary<Face, Tile> tiles;
     Globehedron polyhedron;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -41,18 +41,18 @@ public class Globe : MonoBehaviour
     /// <summary>
     /// Naive search for the closest face to target point.
     /// </summary>
-    public GameObject GetClosestFace(Vector3 target)
+    public Face GetClosestFace(Vector3 target)
     {
         float dist = float.MaxValue;
-        GameObject closest = null;
-        foreach (GameObject t in faces)
+        Face closest = null;
+        foreach (Face face in faces)
         {
-            Vector3 p = t.transform.position;
+            Vector3 p = face.Pos;
             float m = (p - target).sqrMagnitude;
             if (m < dist)
             {
                 dist = m;
-                closest = t;
+                closest = face;
             }
         }
 
@@ -75,20 +75,22 @@ public class Globe : MonoBehaviour
 
     void PlaceTiles(float chance)
     {
-        foreach (GameObject g in faces)
+        foreach (Face face in faces)
         {
-            // Create a new tile and align it to its parent face 
-            GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            tile.transform.position = Vector3.zero;
-            tile.transform.SetParent(g.transform, false);
-            tile.transform.localScale = Vector3.one * polyhedron.faceScale;
-            tiles.Add(g, tile);
+            // Create a new tile and align it to its parent face
+            GameObject tileObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            tileObject.transform.position = Vector3.zero;
+            tileObject.transform.SetParent(face.transform, false);
+            tileObject.transform.localScale = Vector3.one * polyhedron.scale;
 
+            Tile tile = tileObject.AddComponent<Tile>();
+            tile.SetOwner(face);
+            tiles.Add(face, tile);
 
             // give a few some color!
             if (Random.value < chance)
             {
-                Renderer r = tile.GetComponent<Renderer>();
+                Renderer r = tileObject.GetComponent<Renderer>();
                 r.material.color = Random.ColorHSV(0, 1, 0.3f, 0.7f, 0.4f, 0.7f);
             }
         }
@@ -157,11 +159,11 @@ public class Globe : MonoBehaviour
     {
         polyhedron = transform.GetComponent<Globehedron>();
         polyhedron.Generate(transform);
-        faces = polyhedron.tiles;
+        faces = polyhedron.faces;
 
-        foreach (GameObject face in faces)
+        foreach (Face face in faces)
         {
-            face.transform.SetParent(transform);
+            face.transform.SetParent(polyhedron.babysitter.transform);
         }
     }
 
@@ -184,7 +186,13 @@ public class Globe : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, targetables))
             {
                 dragging = true;
-                dragged.transform.position = GetClosestFace(hit.point).transform.position;
+                Face hitFace = hit.collider != null ? hit.collider.GetComponentInParent<Face>() : null;
+                if (hitFace == null)
+                {
+                    hitFace = GetClosestFace(hit.point);
+                }
+
+                dragged.transform.position = hitFace.Pos;
             }
         }
 
@@ -202,7 +210,13 @@ public class Globe : MonoBehaviour
                 // Access data about the object that was struck
                 Debug.Log("Selected " + hit.transform.name + " " + hit.transform.position + " at point " + hit.point);
 
-                selected.transform.position = GetClosestFace(hit.point).transform.position;
+                Face hitFace = hit.collider != null ? hit.collider.GetComponentInParent<Face>() : null;
+                if (hitFace == null)
+                {
+                    hitFace = GetClosestFace(hit.point);
+                }
+
+                selected.transform.position = hitFace.Pos;
             }
             else
             {
@@ -228,13 +242,13 @@ public class Globe : MonoBehaviour
             {
                 // Find tile S on face A close to position U
                 Vector3 u = selected.transform.position;
-                GameObject a = GetClosestFace(u);
-                GameObject s = tiles[a];
+                Face a = GetClosestFace(u);
+                Tile s = tiles[a];
 
                 // Find tile T on face B close to position V
                 Vector3 v = dragged.transform.position;
-                GameObject b = GetClosestFace(v);
-                GameObject t = tiles[b];
+                Face b = GetClosestFace(v);
+                Tile t = tiles[b];
 
                 // Take tiles off
                 Vector3 p = s.transform.position;
@@ -247,12 +261,14 @@ public class Globe : MonoBehaviour
                 s.transform.position = q;
                 s.transform.SetParent(b.transform);
                 s.transform.localEulerAngles = Vector3.zero;
+                s.SetOwner(b);
 
                 // put tile T onto A at postiion P
                 tiles.Add(b, s);
                 t.transform.position = p;
                 t.transform.SetParent(a.transform);
                 t.transform.localEulerAngles = Vector3.zero;
+                t.SetOwner(a);
 
             }
             dragging = false;
@@ -267,19 +283,19 @@ public class Globe : MonoBehaviour
             InitTiles();
         }
 
-        Vector3 faceScale = Vector3.one * polyhedron.faceScale;
-        foreach (GameObject g in faces)
+        Vector3 faceScale = Vector3.one * polyhedron.scale;
+        foreach (Face face in faces)
         {
             Matrix4x4 orig = Gizmos.matrix;
-            Vector3 pos = g.transform.position;
+            Vector3 pos = face.Pos;
             Quaternion rot = Quaternion.FromToRotation(Vector3.forward, pos - transform.position);
             Matrix4x4 goal = Matrix4x4.TRS(pos - transform.position, rot, faceScale);
             Gizmos.matrix = goal;
 
             Gizmos.color = Color.white;
-            if (tiles.ContainsKey(g))
+            if (tiles.ContainsKey(face))
             {
-                Gizmos.color = tiles[g].GetComponent<Renderer>().material.color;
+                Gizmos.color = tiles[face].GetComponent<Renderer>().material.color;
                 Gizmos.DrawSphere(Vector3.zero, 1f);
             }
 

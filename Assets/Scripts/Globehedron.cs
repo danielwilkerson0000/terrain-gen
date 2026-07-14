@@ -12,7 +12,9 @@ public class Globehedron : MonoBehaviour
 {
     [Header("Polyhedron Settings")]
     [Range(1, 5)] public int frequency = 1;
+    [HideInInspector]
     public float radius = 1f;
+
     // [Range(0.5f, 1.01f)] 
     private float cellScale = 1f; // Creates gaps between tiles
 
@@ -28,17 +30,31 @@ public class Globehedron : MonoBehaviour
     private List<Vector3> primalVertices;
     private List<int> primalTriangles;
 
-    public List<GameObject> tiles;
+    [HideInInspector]
+    public List<Face> faces;
+    public Dictionary<int, Face> faceMap;
 
-    public float faceScale = 0.25f;
+    [HideInInspector]
+    public float scale = 0.25f;
+
+    public Globehedron() {
+        faceMap = new();
+    }
 
     public void ClearExisting()
     {
-        foreach (GameObject g in tiles)
+        if (faces != null)
         {
-            DestroyImmediate(g);
+            foreach (Face face in faces)
+            {
+                if (face != null)
+                {
+                    DestroyImmediate(face.gameObject);
+                }
+            }
         }
-        tiles = new();
+
+        faces = new();
     }
 
     public void Generate(Transform transform)
@@ -46,7 +62,7 @@ public class Globehedron : MonoBehaviour
 
         ClearExisting();
 
-        faceScale = 0.5f * Mathf.Pow(1 / 2f, frequency);
+        scale = 0.5f * Mathf.Pow(1 / 2f, frequency);
 
         // correct gaps in tiles.
         // gaps still show in low frequency
@@ -68,9 +84,14 @@ public class Globehedron : MonoBehaviour
             cellScale = 1f;
         }
 
-
         GenerateSubdividedIcosahedron();
         BuildIndividualTiles(transform);
+
+
+        foreach (Face face in faces)
+        {
+            faceMap.Add(face.id, face);
+        }
     }
 
     void GenerateSubdividedIcosahedron()
@@ -211,34 +232,36 @@ public class Globehedron : MonoBehaviour
             cellCenterPos = transformation.MultiplyPoint3x4(cellCenterPos);
             cellNormal = transformation.MultiplyPoint3x4(cellNormal);
             corners = corners.Select(c => transformation.MultiplyPoint3x4(c)).ToList();
-            
-            GameObject tile = CreateTileGameObject(cellCenterPos, cellNormal, corners, isPentagon);
-            tile.transform.parent = transform;
-            tiles.Add(tile);
+
+            GameObject faceObject = CreateFaceGameObject(cellCenterPos, cellNormal, corners, isPentagon);
+            faceObject.transform.parent = transform;
+
+            Face face = faceObject.AddComponent<Face>();
+            faces.Add(face);
         }
     }
 
-    GameObject CreateTileGameObject(Vector3 center, Vector3 normal, List<Vector3> globalCorners, bool isPentagon)
+    GameObject CreateFaceGameObject(Vector3 center, Vector3 normal, List<Vector3> globalCorners, bool isPentagon)
     {
-        GameObject tile = new GameObject(isPentagon ? "PentagonTile" : "HexagonTile");
-        // tile.transform.SetParent(parent);
+        GameObject faceObject = new GameObject(isPentagon ? "Face (5)" : "Face");
+        // faceObject.transform.SetParent(parent);
 
-        // Position the tile center in the world
-        tile.transform.position = center;
-        tile.transform.rotation = Quaternion.LookRotation(normal);
+        // Position the face center in the world
+        faceObject.transform.position = center;
+        faceObject.transform.rotation = Quaternion.LookRotation(normal);
 
-        MeshFilter mf = tile.AddComponent<MeshFilter>();
-        MeshRenderer mr = tile.AddComponent<MeshRenderer>();
+        MeshFilter mf = faceObject.AddComponent<MeshFilter>();
+        MeshRenderer mr = faceObject.AddComponent<MeshRenderer>();
         mr.material = isPentagon ? pentagonMaterial : hexagonMaterial;
 
         // Generate flat local vertices
-        List<Vector3> localVertices = new List<Vector3> { Vector3.zero }; // Local Center
-        List<int> localTriangles = new List<int>();
+        List<Vector3> localVertices = new() { Vector3.zero }; // Local Center
+        List<int> localTriangles = new();
 
         for (int i = 0; i < globalCorners.Count; i++)
         {
-            // Convert global corner positions to local tile coordinates
-            Vector3 localCorner = tile.transform.InverseTransformPoint(globalCorners[i]);
+            // Convert global corner positions to local face coordinates
+            Vector3 localCorner = faceObject.transform.InverseTransformPoint(globalCorners[i]);
 
             // Force flatness by flattening the local Z axis relative to its facing direction
             localCorner.z = 0f;
@@ -266,10 +289,10 @@ public class Globehedron : MonoBehaviour
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
 
-        // Add a MeshCollider to make the individual flat tiles raycastable/clickable
-        tile.AddComponent<MeshCollider>().sharedMesh = mesh;
+        // Add a MeshCollider to make the individual flat faces raycastable/clickable
+        faceObject.AddComponent<MeshCollider>().sharedMesh = mesh;
         mf.mesh = mesh;
 
-        return tile;
+        return faceObject;
     }
 }
