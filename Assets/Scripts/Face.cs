@@ -2,12 +2,12 @@ using UnityEngine;
 
 public class Face : MonoBehaviour
 {
-    public static int idCount = 0;
+    public static int idCount = 1;
 
     public int id;
     public Vector3 normal;
     public Vector3 Pos => transform.position;
-    public Tile occupier;
+    public Tile tile;
 
     public Face()
     {
@@ -25,7 +25,19 @@ public class Face : MonoBehaviour
         normal = transform.forward;
     }
 
-    public void SetOccupiedTile(Tile tile) {
-        occupier = tile;
+    public void SetTile(Tile tile)
+    {
+        this.tile = tile;
+    }
+
+    public override string ToString()
+    {
+        return $"Face[{id}]({tile})";
+    }
+
+    public void PlaceTile(Tile tile)
+    {
+        SetTile(tile);
+        tile.Place(this);
     }
 }
