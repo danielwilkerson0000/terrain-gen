@@ -24,10 +24,6 @@ public class GlobeController : MonoBehaviour
         InitWidgets();
     }
 
-    void Awake()
-    {
-    }
-
     void InitWidgets()
     {
         float scale = globe.GetFaceScale() * 1.3f;
@@ -53,68 +49,49 @@ public class GlobeController : MonoBehaviour
 
     void ManageMouseControls()
     {
-        if (globe == null)
-        {
-            return;
-        }
+        if (globe == null) return;
 
         if (Mouse.current.leftButton.isPressed)
         {
-            Vector2 mousePosition = Mouse.current.position.ReadValue();
-            Ray ray = Camera.main.ScreenPointToRay(mousePosition);
-
+            Vector2 p = Mouse.current.position.ReadValue();
+            Ray ray = Camera.main.ScreenPointToRay(p);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, selectionMask))
             {
+                if (hit.collider == null) return;
+
+                selecting = Mouse.current.leftButton.wasPressedThisFrame;
                 dragging = true;
-                if (hit.collider != null)
-                {
-                    Face face = globe.GetClosestFace(hit.point);
-                    dragged.transform.position = face.Pos;
-                    // Debug.Log($"Dragging {face} at {hit.point}");
-                }
-            }
-        }
+                selected.SetActive(selecting || dragging);
+                dragged.SetActive(dragging);
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-        {
-            Vector2 mousePosition = Mouse.current.position.ReadValue();
-            Ray ray = Camera.main.ScreenPointToRay(mousePosition);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, selectionMask))
-            {
-                selecting = true;
-                if (hit.collider != null)
-                {
-                    Face face = globe.GetClosestFace(hit.point);
+                Face face = globe.GetClosestFace(hit.point);
+                dragged.transform.position = face.Pos;
+                if (selecting)
                     selected.transform.position = face.Pos;
-                    // Debug.Log($"Selected {face} at {hit.point}");
-                }
             }
-            else
-            {
-                selecting = false;
-            }
-        }
-
-        if ((selected.transform.position - dragged.transform.position).sqrMagnitude < 0.01f)
-        {
-            dragging = false;
         }
     }
 
     void FinalizeMouseControls()
     {
-        if (Mouse.current.leftButton.wasReleasedThisFrame)
+        if ((selected.transform.position - dragged.transform.position).sqrMagnitude < 0.01f)
         {
-            if (dragging && selecting)
-            {
-                Face f = globe.GetClosestFace(selected.transform.position);
-                Face g = globe.GetClosestFace(dragged.transform.position);
-                globe.SwapTiles(f, g);
-            }
-
             dragging = false;
+        }
+
+        if (dragging && Mouse.current.leftButton.wasReleasedThisFrame)
+        {
+            Face f = globe.GetClosestFace(selected.transform.position);
+            Face g = globe.GetClosestFace(dragged.transform.position);
+            globe.SwapTiles(f, g);
+        }
+
+        if (!Mouse.current.leftButton.isPressed)
+        {
             selecting = false;
+            dragging = false;
+            selected.SetActive(false);
+            dragged.SetActive(false);
         }
     }
 }

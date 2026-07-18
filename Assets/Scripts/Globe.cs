@@ -66,13 +66,11 @@ public class Globe : MonoBehaviour
     public void MakeTiles()
     {
         tiles = new();
-        foreach (Face face in faces)
-        {
-            Tile tile = face.gameObject.AddComponent<Tile>();
+        foreach (Face face in faces) {
+            Tile tile = Tile.Basic(globehedron.scale);
+            
+            tile.PutOn(face);
             tiles.Add(face.id, tile);
-
-            face.PutTile(tile);
-            tile.InitWidgets();
         }
     }
 
@@ -98,11 +96,11 @@ public class Globe : MonoBehaviour
 
     public void SwapTiles(Face face1, Face face2)
     {
-        Tile s = tiles[face1.id];
-        Tile t = tiles[face2.id];
-        tiles[face1.id] = t;
-        tiles[face2.id] = s;
-        face1.PutTile(t);
-        face2.PutTile(s);
+        Tile tile1 = tiles[face1.id];
+        Tile tile2 = tiles[face2.id];
+        tiles[face1.id] = tile2;
+        tiles[face2.id] = tile1;
+        tile1.PutOn(face2);
+        tile2.PutOn(face1);
     }
 }
