@@ -32,13 +32,6 @@ public class Globe : MonoBehaviour
     /// </summary>
     public Face GetClosestFace(Vector3 target)
     {
-        // if (faces is null || !faces.Any())
-        // {
-        //     Debug.Log("Panic making faces!");
-        //     MakeGoldbergFaces();
-        //     MakeTiles();
-        // }
-
         float dist = float.MaxValue;
         Face closest = null;
         foreach (Face face in faces)
@@ -51,21 +44,20 @@ public class Globe : MonoBehaviour
                 closest = face;
             }
         }
-        // Debug.Log($"Closest to {target} is {closest}");
 
         return closest;
     }
 
     public float GetFaceScale()
     {
-        if (globehedron == null) MakeGoldbergFaces();
-        return globehedron != null ? globehedron.scale : 1f;
+        if (globehedron == null) MakeGoldbergFaces(false);
+        return globehedron.scale;
     }
 
     void InitTiles()
     {
         // creates + places faces in the world
-        MakeGoldbergFaces();
+        MakeGoldbergFaces(true);
 
         MakeTiles();
         ColorSomeTiles(0.2f);
@@ -97,16 +89,11 @@ public class Globe : MonoBehaviour
         }
     }
 
-    public void MakeGoldbergFaces()
+    public void MakeGoldbergFaces(bool buildMeshes)
     {
         globehedron = transform.GetComponent<Globehedron>();
-        globehedron.Generate(transform);
+        globehedron.Generate(buildMeshes);
         faces = globehedron.faces;
-
-        foreach (Face face in faces)
-        {
-            face.transform.SetParent(globehedron.babysitter.transform);
-        }
     }
 
     public void SwapTiles(Face face1, Face face2)

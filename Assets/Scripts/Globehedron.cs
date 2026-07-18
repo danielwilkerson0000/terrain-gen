@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -14,6 +13,7 @@ public class Globehedron : MonoBehaviour
     [Range(1, 5)] public int frequency = 1;
     [HideInInspector]
     public float radius = 1f;
+    public bool buildFaces = true;
 
     // [Range(0.5f, 1.01f)] 
     private float cellScale = 1f; // Creates gaps between tiles
@@ -43,6 +43,7 @@ public class Globehedron : MonoBehaviour
 
     public void ClearExisting()
     {
+        faceMap.Clear();
         if (faces != null)
         {
             foreach (Face face in faces)
@@ -57,9 +58,8 @@ public class Globehedron : MonoBehaviour
         faces = new();
     }
 
-    public void Generate(Transform transform)
+    public void Generate(bool buildMeshes)
     {
-
         ClearExisting();
 
         scale = 0.5f * Mathf.Pow(1 / 2f, frequency);
@@ -89,12 +89,14 @@ public class Globehedron : MonoBehaviour
         Tile.scale = scale;
 
         GenerateSubdividedIcosahedron();
-        BuildIndividualTiles(transform);
+        BuildIndividualTiles(buildMeshes);
 
-
-        foreach (Face face in faces)
+        if (buildMeshes && faces != null)
         {
-            faceMap.Add(face.id, face);
+            foreach (Face face in faces)
+            {
+                faceMap.Add(face.id, face);
+            }
         }
     }
 
@@ -178,7 +180,7 @@ public class Globehedron : MonoBehaviour
 
     void AddPrimalVertex(Vector3 v) { primalVertices.Add(v.normalized); }
 
-    void BuildIndividualTiles(Transform transform)
+    void BuildIndividualTiles(bool buildMeshes)
     {
         // Map each vertex index to a list of triangles that share it
         Dictionary<int, List<int>> vertexToTriangles = new();
@@ -226,21 +228,30 @@ public class Globehedron : MonoBehaviour
                 return angleB.CompareTo(angleA);
             });
 
-            // Create individual tile mesh
+            // Create individual tile mesh or just collect the info
+            GameObject faceObject;
             bool isPentagon = (corners.Count == 5);
-
-            GameObject faceObject = CreateFaceGameObject(cellCenterPos, cellNormal, corners, isPentagon);
+            Quaternion rotation = Quaternion.LookRotation(cellNormal);
+            if (buildMeshes)
+            {
+                faceObject = CreateFaceGameObject(cellCenterPos, cellNormal, corners, isPentagon);
+            }
+            else
+            {
+                faceObject = new();
+                faceObject.transform.SetPositionAndRotation(cellCenterPos, rotation);
+            }
             faceObject.transform.SetParent(babysitter.transform, false);
 
             Face face = faceObject.AddComponent<Face>();
+            faceObject.name = isPentagon ? $"Face[{Face.idCount}] (5)" : $"Face[{Face.idCount}]";
             faces.Add(face);
         }
     }
 
     GameObject CreateFaceGameObject(Vector3 center, Vector3 normal, List<Vector3> globalCorners, bool isPentagon)
     {
-        GameObject faceObject = new GameObject(isPentagon ? $"Face[{Face.idCount}] (5)" : $"Face[{Face.idCount}]");
-        // faceObject.transform.SetParent(parent);
+        GameObject faceObject = new GameObject();
 
         // Position the face center in the world
         faceObject.transform.position = center;

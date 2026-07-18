@@ -16,9 +16,15 @@ public class GlobeEditor : Editor
         // Add space before the button
         GUILayout.Space(10);
 
+        if (GUILayout.Button("Make Faces"))
+        {
+            globe.MakeGoldbergFaces(true);
+            globe.MakeTiles();
+        }
+
         if (GUILayout.Button("Make Tiles"))
         {
-            globe.MakeGoldbergFaces();
+            globe.MakeGoldbergFaces(false);
             globe.MakeTiles();
         }
 

@@ -26,7 +26,7 @@ public class GlobehedronEditor : Editor
         // Create the button and check if it is clicked
         if (GUILayout.Button("Generate"))
         {
-            globehedron.Generate(null);
+            globehedron.Generate(globehedron.buildFaces);
         }
     }
 }
