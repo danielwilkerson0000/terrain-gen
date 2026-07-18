@@ -7,14 +7,12 @@ public class GlobehedronEditor : Editor
     public override void OnInspectorGUI()
     {
         // Draws the default inspector fields (variables)
-        DrawDefaultInspector(); 
+        DrawDefaultInspector();
 
         // Get a reference to the target script
         Globehedron globehedron = (Globehedron)target;
 
-        // Add space before the button
         GUILayout.Space(10);
-
         // Create the button and check if it is clicked
         if (GUILayout.Button("Clear Babysitter Children"))
         {

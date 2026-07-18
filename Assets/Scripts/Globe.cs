@@ -7,7 +7,7 @@ public class Globe : MonoBehaviour
     [HideInInspector]
     List<Face> faces;
     Dictionary<int, Tile> tiles;
-    Globehedron polyhedron;
+    Globehedron globehedron;
     GlobeController controller;
 
     void Awake()
@@ -58,8 +58,8 @@ public class Globe : MonoBehaviour
 
     public float GetFaceScale()
     {
-        if (polyhedron == null) MakeGoldbergFaces();
-        return polyhedron != null ? polyhedron.scale : 1f;
+        if (globehedron == null) MakeGoldbergFaces();
+        return globehedron != null ? globehedron.scale : 1f;
     }
 
     void InitTiles()
@@ -80,7 +80,7 @@ public class Globe : MonoBehaviour
             tiles.Add(face.id, tile);
 
             face.PutTile(tile);
-            // tile.InitWidgets();
+            tile.InitWidgets();
         }
     }
 
@@ -99,13 +99,13 @@ public class Globe : MonoBehaviour
 
     public void MakeGoldbergFaces()
     {
-        polyhedron = transform.GetComponent<Globehedron>();
-        polyhedron.Generate(transform);
-        faces = polyhedron.faces;
+        globehedron = transform.GetComponent<Globehedron>();
+        globehedron.Generate(transform);
+        faces = globehedron.faces;
 
         foreach (Face face in faces)
         {
-            face.transform.SetParent(polyhedron.babysitter.transform);
+            face.transform.SetParent(globehedron.babysitter.transform);
         }
     }
 

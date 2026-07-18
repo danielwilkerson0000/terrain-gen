@@ -229,16 +229,8 @@ public class Globehedron : MonoBehaviour
             // Create individual tile mesh
             bool isPentagon = (corners.Count == 5);
 
-            // Transform positions, normals, corners to match the given Transform,
-            // or the default
-            transform ??= babysitter.transform;
-            Matrix4x4 transformation = transform.transform.localToWorldMatrix;
-            cellCenterPos = transformation.MultiplyPoint3x4(cellCenterPos);
-            cellNormal = transformation.MultiplyPoint3x4(cellNormal);
-            corners = corners.Select(c => transformation.MultiplyPoint3x4(c)).ToList();
-
             GameObject faceObject = CreateFaceGameObject(cellCenterPos, cellNormal, corners, isPentagon);
-            faceObject.transform.parent = transform;
+            faceObject.transform.SetParent(babysitter.transform, false);
 
             Face face = faceObject.AddComponent<Face>();
             faces.Add(face);
@@ -247,7 +239,7 @@ public class Globehedron : MonoBehaviour
 
     GameObject CreateFaceGameObject(Vector3 center, Vector3 normal, List<Vector3> globalCorners, bool isPentagon)
     {
-        GameObject faceObject = new GameObject(isPentagon ? "Face (5)" : "Face");
+        GameObject faceObject = new GameObject(isPentagon ? $"Face[{Face.idCount}] (5)" : $"Face[{Face.idCount}]");
         // faceObject.transform.SetParent(parent);
 
         // Position the face center in the world
