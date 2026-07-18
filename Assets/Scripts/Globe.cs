@@ -6,14 +6,14 @@ public class Globe : MonoBehaviour
 {
     [HideInInspector]
     List<Face> faces;
-    Dictionary<Face, Tile> tiles;
+    Dictionary<int, Tile> tiles;
     Globehedron polyhedron;
     GlobeController controller;
 
     void Awake()
     {
-        InitTiles();
         InitController();
+        InitTiles();
     }
 
     void InitController()
@@ -27,20 +27,17 @@ public class Globe : MonoBehaviour
         controller.Initialize(this);
     }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-    }
-
     /// <summary>
     /// Naive search for the closest face to target point.
     /// </summary>
     public Face GetClosestFace(Vector3 target)
     {
-        if (faces is null || !faces.Any())
-        {
-            return null;
-        }
+        // if (faces is null || !faces.Any())
+        // {
+        //     Debug.Log("Panic making faces!");
+        //     MakeGoldbergFaces();
+        //     MakeTiles();
+        // }
 
         float dist = float.MaxValue;
         Face closest = null;
@@ -54,56 +51,53 @@ public class Globe : MonoBehaviour
                 closest = face;
             }
         }
-        Debug.Log($"Closest to {target} is {closest}");
+        // Debug.Log($"Closest to {target} is {closest}");
 
         return closest;
     }
 
     public float GetFaceScale()
     {
+        if (polyhedron == null) MakeGoldbergFaces();
         return polyhedron != null ? polyhedron.scale : 1f;
     }
 
     void InitTiles()
     {
-        if (tiles is not null) return;
+        // creates + places faces in the world
+        MakeGoldbergFaces();
 
-        faces = new();
-        tiles = new();
-
-        // creates + places faces in the word
-        InitGoldbergFaces();
-
-
-        // creates + places tiles on all faces
-        PlaceTiles(0.2f);
+        MakeTiles();
+        ColorSomeTiles(0.2f);
     }
 
-
-    void PlaceTiles(float chance)
+    public void MakeTiles()
     {
+        tiles = new();
         foreach (Face face in faces)
         {
-            // Create a new tile and align it to its parent face
-            GameObject tileObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            tileObject.transform.position = Vector3.zero;
-            tileObject.transform.SetParent(face.transform, false);
-            tileObject.transform.localScale = Vector3.one * polyhedron.scale;
+            Tile tile = face.gameObject.AddComponent<Tile>();
+            tiles.Add(face.id, tile);
 
-            Tile tile = tileObject.AddComponent<Tile>();
-            tile.Place(face);
-            tiles.Add(face, tile);
+            face.PutTile(tile);
+            // tile.InitWidgets();
+        }
+    }
 
+    public void ColorSomeTiles(float chance)
+    {
+        foreach (Tile tile in tiles.Values)
+        {
             // give a few some color!
             if (Random.value < chance)
             {
-                Renderer r = tileObject.GetComponent<Renderer>();
-                r.material.color = Random.ColorHSV(0, 1, 0.3f, 0.7f, 0.4f, 0.7f);
+                Color c = Random.ColorHSV(0, 1, 0.3f, 0.7f, 0.4f, 0.7f);
+                tile.Color(c);
             }
         }
     }
 
-    void InitGoldbergFaces()
+    public void MakeGoldbergFaces()
     {
         polyhedron = transform.GetComponent<Globehedron>();
         polyhedron.Generate(transform);
@@ -117,11 +111,11 @@ public class Globe : MonoBehaviour
 
     public void SwapTiles(Face face1, Face face2)
     {
-        Tile s = tiles[face1];
-        Tile t = tiles[face2];
-        tiles[face1] = t;
-        tiles[face2] = s;
-        face1.PlaceTile(t);
-        face2.PlaceTile(s);
+        Tile s = tiles[face1.id];
+        Tile t = tiles[face2.id];
+        tiles[face1.id] = t;
+        tiles[face2.id] = s;
+        face1.PutTile(t);
+        face2.PutTile(s);
     }
 }

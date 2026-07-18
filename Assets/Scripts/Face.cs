@@ -32,12 +32,12 @@ public class Face : MonoBehaviour
 
     public override string ToString()
     {
-        return $"Face[{id}]({tile})";
+        return $"Face[{id}]";
     }
 
-    public void PlaceTile(Tile tile)
+    public void PutTile(Tile tile)
     {
         SetTile(tile);
-        tile.Place(this);
+        tile.PutOn(this);
     }
 }

@@ -1,8 +1,5 @@
-using System.Collections.Generic;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Windows.Speech;
 
 /// <summary>
 /// THIS WAS LARGELY GENERATED WITH THE HELP OF GOOGLE GEMINI - MANY THANKS.
@@ -13,7 +10,7 @@ using UnityEngine.Windows.Speech;
 /// </summary>
 public class GlobeController : MonoBehaviour
 {
-    Globe globe;
+    public Globe globe;
     public LayerMask selectionMask;
 
     GameObject selected;
@@ -33,13 +30,16 @@ public class GlobeController : MonoBehaviour
 
     void InitWidgets()
     {
-        float scale = globe.GetFaceScale() * 1.1f;
+        float scale = globe.GetFaceScale() * 1.3f;
+
         selected = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        selected.name = "selected";
         selected.transform.localScale = scale * Vector3.one;
         selected.GetComponent<Renderer>().material.color = Color.darkBlue;
         // selected.SetActive(false);
 
         dragged = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        dragged.name = "dragged";
         dragged.transform.localScale = scale * Vector3.one;
         dragged.GetComponent<Renderer>().material.color = Color.red;
         // dragged.SetActive(false);
@@ -66,13 +66,12 @@ public class GlobeController : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, selectionMask))
             {
                 dragging = true;
-                Face hitFace = hit.collider != null ? hit.collider.GetComponentInParent<Face>() : null;
-                if (hitFace == null)
+                if (hit.collider != null)
                 {
-                    hitFace = globe.GetClosestFace(hit.point);
+                    Face face = globe.GetClosestFace(hit.point);
+                    dragged.transform.position = face.Pos;
+                    // Debug.Log($"Dragging {face} at {hit.point}");
                 }
-
-                dragged.transform.position = hitFace.Pos;
             }
         }
 
@@ -84,14 +83,12 @@ public class GlobeController : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, selectionMask))
             {
                 selecting = true;
-                Face face = hit.collider != null ? hit.collider.GetComponentInParent<Face>() : null;
-                if (face == null)
+                if (hit.collider != null)
                 {
-                    face = globe.GetClosestFace(hit.point);
+                    Face face = globe.GetClosestFace(hit.point);
+                    selected.transform.position = face.Pos;
+                    // Debug.Log($"Selected {face} at {hit.point}");
                 }
-
-                selected.transform.position = face.Pos;
-                Debug.Log($"Selected {face} at {hit.point}");
             }
             else
             {

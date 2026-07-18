@@ -84,6 +84,10 @@ public class Globehedron : MonoBehaviour
             cellScale = 1f;
         }
 
+        // HUGE JANK FIX
+        // TODO: FIX THIS
+        Tile.scale = scale;
+
         GenerateSubdividedIcosahedron();
         BuildIndividualTiles(transform);
 
